@@ -1,5 +1,6 @@
-use crate::storage;
+use crate::{entity, storage};
 
+use crate::storage::LawStorageTrait;
 use serde::Deserialize;
 
 pub async fn update_laws_database_periodic_task(
@@ -35,13 +36,26 @@ pub async fn update_laws_database(
     uri: &String,
 ) -> anyhow::Result<Box<dyn storage::LawStorageTrait + Send>> {
     let resp = reqwest::get(uri).await?;
-    /*.json::<std::collections::HashMap<String, storage::Law>>()
-    .await?;*/
 
-    let new_laws = storage::LawStorage::new_empty();
+    let mut new_laws = storage::LawStorage::new_empty();
     for document in serde_yaml::Deserializer::from_str(resp.text().await?.as_str()) {
         let value = serde_yaml::Value::deserialize(document)?;
-        println!("{:?}", value);
+
+        if let Some(law_sequence) = value.as_sequence() {
+            for law_mapping in law_sequence {
+                let parsed_law = serde_yaml::from_value::<entity::Law>(law_mapping.clone());
+
+                match parsed_law {
+                    Ok(law) => {
+                        log::debug!("Parsed law: {:?}", law);
+                        new_laws.add(law);
+                    }
+                    Err(e) => log::warn!("Cannot parse a law: {}", e),
+                };
+            }
+        } else {
+            log::warn!("Cannot parse law sequence")
+        }
     }
 
     let new_laws = Box::new(new_laws);

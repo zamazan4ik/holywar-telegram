@@ -36,3 +36,7 @@
 
 # Added by cargo
 /target
+
+# Files with possibly sensitive information
+.env.*
+

@@ -1,8 +1,11 @@
 mod commands;
+mod entity;
 mod fetch_database;
+mod formatter;
 mod logging;
 mod parameters;
 mod storage;
+mod utils;
 mod webhook;
 
 use teloxide::{prelude::*, utils::command::BotCommand};
@@ -16,21 +19,14 @@ async fn run() {
     logging::init_logger();
     log::info!("Starting Holywar bot");
 
-    let use_dotenv: bool = std::env::var("USE_DOTENV")
-        .unwrap_or("false".to_string())
-        .parse()
-        .expect(
-            "Cannot convert USE_DOTENV to bool. Applicable values are only \"true\" or \"false\"",
-        );
-
-    if use_dotenv {
-        match dotenv::dotenv() {
-            Ok(path) => log::info!(
-                "Environment variables are loaded successfully from .env file. .env filepath: {:?}",
-                path
+    if let Ok(dotenv_absolute_path) = std::env::var("DOTENV_ABSOLUTE_PATH") {
+        match dotenv::from_path(std::path::PathBuf::from(dotenv_absolute_path.clone())) {
+            Ok(_) => log::info!(
+                "Environment variables are loaded successfully from .env file. .env filepath: {}",
+                dotenv_absolute_path
             ),
             Err(e) => log::info!(
-                "Environment variables are not loaded from .env file. Error: {:?}",
+                "Environment variables are not loaded from .env file. Error: {}",
                 e
             ),
         };

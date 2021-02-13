@@ -1,17 +1,12 @@
-#[derive(Clone, serde::Deserialize)]
-pub struct Law {
-    id: i32,
-    name: String,
-    text: String,
-    legitimacy: bool,
-}
+use crate::entity;
 
 pub trait LawStorageTrait {
-    fn get_by_number(&self, law_number: i32) -> Option<&Law>;
+    fn add(&mut self, law: entity::Law);
+    fn get_by_number(&self, law_number: entity::LawNumber) -> Option<&entity::Law>;
     fn len(&self) -> usize;
 }
 
-pub type LawStorageInternalType = std::collections::HashMap<i32, Law>;
+pub type LawStorageInternalType = std::collections::HashMap<entity::LawNumber, entity::Law>;
 
 pub struct LawStorage {
     database: LawStorageInternalType,
@@ -23,24 +18,14 @@ impl LawStorage {
             database: LawStorageInternalType::new(),
         }
     }
-
-    pub fn new(mut initial_values: LawStorageInternalType) -> Self {
-        for (key, value) in initial_values.iter_mut() {
-            value.id = key.clone();
-        }
-
-        LawStorage {
-            database: initial_values,
-        }
-    }
-
-    pub fn len(&self) -> usize {
-        return self.database.len();
-    }
 }
 
 impl LawStorageTrait for LawStorage {
-    fn get_by_number(&self, law_number: i32) -> Option<&Law> {
+    fn add(&mut self, law: entity::Law) {
+        self.database.insert(law.id, law);
+    }
+
+    fn get_by_number(&self, law_number: entity::LawNumber) -> Option<&entity::Law> {
         self.database.get(&law_number)
     }
 
