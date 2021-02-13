@@ -28,9 +28,12 @@ The bot can be configured only with environment variables. For now there are we 
 | BIND_PORT | Port for binding the web-service | Any valid port | `8080` | Webhook mode |
 | HOST | Host, where Telegram will send updates in webhook mode | Any valid host address | None | Webhook mode |
 | WEBHOOK_URI | An URI path for webhook mode like **/api/v1/some_secret_endpoint** | Any valid URI path | TELOXIDE_TOKEN | Webhook mode |
+| LAWS_DATABASE_URI | An URI path with law database | Any valid URI path | https://raw.githubusercontent.com/ZaMaZaN4iK/holywar_laws/main/holywar_rules.yaml | All mods |
+| DATABASE_UPDATE_PERIODICITY_IN_SECONDS | Law database update periodicity in seconds | Any positive int | 86400 | All mods |
+| DOTENV_ABSOLUTE_PATH | For development purposes only. Filepath to .env file | Any valid filepath | None (but it's not required) | All mods |
 
-If for any variable there is no default value and you didn't provide any value - the bot won't start.
-Bot automatically registers webhook (if is launched in webhook mode) with address `https://$HOST/$TELOXIDE_TOKEN`.
+If for any variable there is no default value and you didn't provide any value - the bot won't start (the only exception is `DOTENV_ABSOLUTE_PATH` env var).
+Bot automatically registers webhook (if is launched in webhook mode) with address `https://$HOST/$TELOXIDE_TOKEN`, if no `WEBHOOK_URI` is provided.
 
 ### How to use
 Just add the bot to your chat and use it's commands.
