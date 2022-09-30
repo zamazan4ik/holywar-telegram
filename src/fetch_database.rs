@@ -8,7 +8,11 @@ pub async fn update_laws_database_periodic_task(
     uri: String,
     update_periodicity: std::time::Duration,
 ) {
+    let mut interval = tokio::time::interval(update_periodicity);
+
     loop {
+        interval.tick().await;
+
         let new_laws = update_laws_database(&uri).await;
 
         match new_laws {
@@ -27,8 +31,6 @@ pub async fn update_laws_database_periodic_task(
                 );
             }
         }
-
-        tokio::time::delay_for(update_periodicity).await;
     }
 }
 
