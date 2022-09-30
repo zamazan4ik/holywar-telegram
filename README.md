@@ -4,7 +4,7 @@
 Just a bot for the best Telegram channel.
 
 ### Dependencies
-* [Rust](https://www.rust-lang.org/) 1.49 or newer
+* [Rust](https://www.rust-lang.org/) 1.64 or newer
 * Cargo
 
 Possibly will work with other Rust versions, but I didn't test it.

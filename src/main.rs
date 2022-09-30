@@ -8,7 +8,7 @@ mod storage;
 mod utils;
 mod webhook;
 
-use teloxide::{prelude::*, utils::command::BotCommand};
+use teloxide::prelude::*;
 
 #[tokio::main]
 async fn main() {
@@ -33,9 +33,8 @@ async fn run() {
     }
 
     let parameters = std::sync::Arc::new(parameters::Parameters::new());
-    let webhook_mode = parameters.is_webhook_mode_enabled;
 
-    let bot = Bot::from_env();
+    let bot = Bot::from_env().auto_send();
 
     let laws: std::sync::Arc<tokio::sync::Mutex<Box<dyn storage::LawStorageTrait + Send>>> =
         std::sync::Arc::new(tokio::sync::Mutex::new(Box::new(
@@ -48,39 +47,27 @@ async fn run() {
         parameters.database_update_periodicity.clone(),
     ));
 
-    let bot_dispatcher =
-        Dispatcher::new(bot.clone()).messages_handler(move |rx: DispatcherHandlerRx<Message>| {
-            rx.for_each(move |message| {
-                let laws = laws.clone();
-                let parameters = parameters.clone();
+    let handler = Update::filter_message().branch(
+        dptree::entry()
+            .filter_command::<commands::Command>()
+            .endpoint(commands::command_handler),
+    );
 
-                async move {
-                    let message_text = match message.update.text() {
-                        Some(x) => x,
-                        None => return,
-                    };
+    if !parameters.is_webhook_mode_enabled {
+        log::info!("Webhook deleted");
+        bot.delete_webhook().await.expect("Cannot delete a webhook");
+    }
 
-                    // Handle commands. If command cannot be parsed - continue processing
-                    match commands::Command::parse(message_text, &parameters.bot_name) {
-                        Ok(command) => {
-                            commands::command_answer(
-                                &message,
-                                command,
-                                parameters.clone(),
-                                laws.clone(),
-                            )
-                            .await
-                            .log_on_error()
-                            .await;
-                            ()
-                        }
-                        Err(_) => (),
-                    };
-                }
-            })
-        });
+    let mut bot_dispatcher = Dispatcher::builder(bot.clone(), handler)
+        .dependencies(dptree::deps![parameters.clone(), laws.clone()])
+        .default_handler(|_| async move {})
+        .error_handler(LoggingErrorHandler::with_custom_text(
+            "An error has occurred in the dispatcher",
+        ))
+        .enable_ctrlc_handler()
+        .build();
 
-    if webhook_mode {
+    if parameters.is_webhook_mode_enabled {
         log::info!("Webhook mode activated");
         let rx = webhook::webhook(bot);
         bot_dispatcher
@@ -89,13 +76,8 @@ async fn run() {
                 LoggingErrorHandler::with_custom_text("An error from the update listener"),
             )
             .await;
-        return;
+    } else {
+        log::info!("Long polling mode activated");
+        bot_dispatcher.dispatch().await;
     }
-
-    log::info!("Long polling mode activated");
-    bot.delete_webhook()
-        .send()
-        .await
-        .expect("Cannot delete a webhook");
-    bot_dispatcher.dispatch().await;
 }
